@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Duty Calculator (Smart Marker)</title>
+    <style>
+        :root {
+            /* 배경 */
+            --page-bg: #475569; 
+            --container-bg: #ffffff;
+            
+            /* 카드 스타일 */
+            --input-card-bg: #eff6ff; --input-card-border: #60a5fa; --input-label: #1d4ed8;
+            --spec-card-bg: #f5f3ff; --spec-card-border: #8b5cf6; --spec-label: #6d28d9;
+            --summary-bg: #fff7ed; --summary-border: #f97316; --summary-text: #9a3412;
+            
+            --card-base-bg: #f8fafc; --card-border: #cbd5e1;
+            --text-main: #0f172a; --text-sub: #64748b; --input-bg: #ffffff;
+            
+            --tab-inactive-bg: #e2e8f0; --tab-inactive-text: #64748b;
+            --tab-active-bg: linear-gradient(135deg, #2563eb, #1d4ed8); --tab-active-text: #ffffff;
+            
+            --rest-bg: #dcfce7; --rest-text: #166534; --rest-border: #86efac;
+            --duty-bg: #fee2e2; --duty-text: #991b1b; --duty-border: #fca5a5;
+            
+            --strip-bg: #1e293b; --strip-text: #ffffff; --strip-accent: #38bdf8;
+            --timeline-rail: #cbd5e1; --timeline-now: #ef4444; --row-active-bg: #fff1f2;
+
+            /* Modal */
+            --modal-overlay: rgba(0, 0, 0, 0.4);
+            --modal-bg: #ffffff;
+            --modal-header: #f1f5f9;
+            --modal-text: #1e293b;
+            --btn-cancel-bg: #e2e8f0; --btn-cancel-text: #475569;
+            --btn-danger-bg: #ef4444; --btn-danger-text: #ffffff;
+        }
+
+        [data-theme='dark'] {
+            --page-bg: #020617; --container-bg: #1e293b;
+            --input-card-bg: #172554; --input-card-border: #3b82f6; --input-label: #93c5fd;
+            --spec-card-bg: #2e1065; --spec-card-border: #a78bfa; --spec-label: #ddd6fe;
+            --summary-bg: #431407; --summary-border: #fb923c; --summary-text: #ffedd5;
+            --card-base-bg: #334155; --card-border: #475569;
+            --text-main: #f1f5f9; --text-sub: #94a3b8; --input-bg: #0f172a;
+            --tab-inactive-bg: #334155; --tab-inactive-text: #94a3b8;
+            --rest-bg: #064e3b; --rest-text: #86efac; --rest-border: #059669;
+            --duty-bg: #7f1d1d; --duty-text: #fca5a5; --duty-border: #dc2626;
+            --strip-bg: #000000; --strip-text: #e2e8f0;
+            --timeline-rail: #475569; --timeline-now: #f87171; --row-active-bg: #450a0a;
+            
+            --modal-overlay: rgba(0, 0, 0, 0.7);
+            --modal-bg: #1e293b;
+            --modal-header: #0f172a;
+            --modal-text: #f1f5f9;
+            --btn-cancel-bg: #334155; --btn-cancel-text: #94a3b8;
+            --btn-danger-bg: #dc2626; --btn-danger-text: #ffffff;
+        }
+
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            padding: 10px; background-color: var(--page-bg); margin: 0; color: var(--text-main); 
+            transition: background-color 0.3s;
+        }
+        
+        .container { 
+            max-width: 600px; margin: auto; background: var(--container-bg); padding: 16px; 
+            border-radius: 24px; box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4); 
+        }
+        
+        /* HEADER & INPUTS */
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .main-title { font-size: 1.5rem; font-weight: 900; color: var(--text-main); letter-spacing: -1px; display: flex; align-items: center; gap: 6px; }
+        .title-icon { color: #3b82f6; }
+        .header-controls { display: flex; align-items: center; gap: 6px; }
+        .offset-control { display: flex; align-items: center; background: var(--card-base-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 3px; gap: 2px; }
+        .auto-btn { background: #2563eb; color: white; border: none; font-size: 0.7rem; font-weight: 800; padding: 5px 8px; border-radius: 7px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .header-select { appearance: none; -webkit-appearance: none; background: transparent; border: none; font-size: 0.85rem; font-weight: 800; color: var(--text-main); font-family: 'SF Mono', monospace; padding: 2px 6px; cursor: pointer; text-align: right; }
+        .icon-btn { background: var(--card-base-bg); border: 1px solid var(--card-border); font-size: 1.1rem; cursor: pointer; padding: 6px; border-radius: 10px; color: var(--text-main); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
+
+        .global-row { display: flex; gap: 8px; margin-bottom: 12px; }
+        .input-card { flex: 1; background-color: var(--input-card-bg); border: 2px solid var(--input-card-border); padding: 12px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .label-text { font-weight: 800; font-size: 0.8rem; color: var(--input-label); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .dropdown-group { display: flex; align-items: center; gap: 4px; width: 100%; justify-content: center; }
+        select.main-select { padding: 6px 2px; border-radius: 8px; border: 1px solid var(--card-border); font-size: 1.2rem; font-weight: 800; background: var(--input-bg); color: var(--text-main); text-align: center; text-align-last: center; -webkit-appearance: none; min-width: 45px; flex: 1; }
+        .unit { font-size: 0.75rem; font-weight: 700; color: var(--text-sub); }
+
+        .tab-nav { display: flex; gap: 6px; margin-bottom: 12px; }
+        .tab-btn { flex: 1; padding: 8px 0; border: none; border-radius: 12px; cursor: pointer; font-weight: 800; font-size: 0.9rem; background: var(--tab-inactive-bg); color: var(--tab-inactive-text); transition: all 0.2s; border: 1px solid var(--card-border); }
+        .tab-btn.active { background: var(--tab-active-bg); color: var(--tab-active-text); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); border: 1px solid transparent; transform: translateY(-1px); }
+
+        .summary-bar { background-color: var(--summary-bg); padding: 10px 16px; border-radius: 14px; border: 2px solid var(--summary-border); margin-bottom: 16px; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .dr-val { color: var(--summary-text); font-weight: 900; font-size: 0.9rem; font-family: 'SF Mono', monospace; text-align: center;}
+
+        .specific-inputs-container { margin-bottom: 16px; }
+        .spec-group { display: none; animation: slideDown 0.3s; }
+        .spec-group.active { display: block; }
+        .spec-card { background: var(--spec-card-bg); border: 2px solid var(--spec-card-border); border-radius: 16px; padding: 12px; margin-bottom: 8px; }
+        .split-row { display: flex; gap: 8px; }
+        .split-row .spec-card { flex: 1; margin-bottom: 0; }
+        .spec-label { font-size: 0.8rem; font-weight: 800; color: var(--spec-label); margin-bottom: 4px; display: block; text-align: center; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* TABLE & TIMELINE */
+        .table-container { display: none; }
+        .table-container.active { display: block; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0 0; position: relative; }
+        th { background-color: #334155; color: #ffffff; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; padding: 8px 4px; border: 1px solid #1e293b; }
+        th:nth-child(2) { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+        th:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+        
+        .tl-col { width: 24px; position: relative; border: none; background: transparent; padding: 0 !important; vertical-align: top;}
+        .tl-rail { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); width: 2px; background-color: var(--timeline-rail); z-index: 0; }
+        thead .tl-rail { display: none; }
+        .data-row:first-child .tl-rail { top: 50%; } .data-row:last-child .tl-rail { bottom: 50%; }
+        .tl-dot { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 8px; height: 8px; border-radius: 50%; background-color: var(--text-sub); z-index: 1; border: 2px solid var(--container-bg); }
+        .time-strip-row .tl-dot { width: 12px; height: 12px; background-color: var(--strip-accent); border: 2px solid var(--page-bg); }
+
+        /* NOW Marker */
+        .now-marker { position: absolute; left: 0; right: -560px; height: 2px; background-color: var(--timeline-now); z-index: 10; pointer-events: none; display: flex; align-items: center; }
+        .now-badge { 
+            background-color: var(--timeline-now); 
+            color: white; 
+            font-size: 0.7rem;
+            width: 70px; 
+            text-align: center;
+            font-weight: 700; 
+            padding: 3px 3px; 
+            border-radius: 6px; 
+            margin-left: 0px;
+            z-index: 11; 
+            white-space: pre; 
+            line-height: 1.25;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-family: 'SF Mono', monospace;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+        
+        .now-dot { width: 12px; height: 12px; background-color: var(--timeline-now); border-radius: 50%; border: 2px solid white; position: absolute; left: 0%; transform: translateX(-50%); box-shadow: 0 0 0 1px var(--timeline-now); }
+        .nb-row { display: flex; justify-content: center; gap: 2px; }
+        .nb-lbl { opacity: 0.8; font-weight: 500; }
+
+        .data-row td { background: var(--input-bg); padding: 8px 2px; text-align: center; vertical-align: middle; border-bottom: 1px solid var(--card-border); position: relative;}
+        .data-row:first-child td { border-top: 1px solid var(--card-border); }
+        
+        /* 🌟 [수정됨] !important 추가: 어떤 경우에도 활성화 배경색이 최우선 적용되도록 함 */
+        .data-row.active-row td:not(.tl-col) { background-color: var(--row-active-bg) !important; }
+
+        /* 🌟 [수정됨] flex 제거하고 block으로 변경: 배경색 꽉 차게 만듦 */
+        .type-cell { height: auto; } /* flex 제거 */
+        .type-label { font-size: 0.85rem; font-weight: 900; color: var(--text-main); margin-bottom: 2px; display: block; /* block으로 변경 */ }
+        .dur-badge { background-color: var(--text-main); color: var(--container-bg); padding: 2px 6px; border-radius: 6px; font-size: 0.9rem; font-weight: 700; font-family: 'SF Mono', monospace; display: inline-block; }
+
+        td.status-duty { background-color: var(--duty-bg); color: var(--duty-text); border-left: 1px solid rgba(0,0,0,0.05); font-size: 1.4rem; line-height: 1; }
+        td.status-rest { background-color: var(--rest-bg); color: var(--rest-text); border-left: 1px solid rgba(0,0,0,0.05); font-size: 1.4rem; line-height: 1; }
+
+        .time-strip-row td { padding: 6px 0; background: transparent !important; border: none !important;}
+        .strip-container { display: flex; gap: 4px; width: 100%; }
+        .strip-label-box { display: flex; align-items: center; justify-content: center; width: 70px; border-radius: 12px; font-size: 0.65rem; font-weight: 900; color: white; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .lbl-takeoff { background-color: #166534; border: 1px solid #14532d; }
+        .lbl-change { background-color: #1e293b; border: 1px solid #0f172a; color: #38bdf8; }
+        .lbl-landing { background-color: #1d4ed8; border: 1px solid #1e40af; }
+        .strip-time-box { flex: 1; display: flex; justify-content: space-between; align-items: center; background-color: var(--strip-bg); border-radius: 12px; padding: 8px 12px; color: var(--strip-text); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .ts-item { font-family: 'SF Mono', monospace; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 4px; }
+        .ts-label { font-size: 0.65rem; opacity: 0.6; font-weight: 700; margin-top: 2px; }
+        .ts-k { color: var(--strip-accent); } 
+        .alert-msg { background: #fef2f2; color: #b91c1c; padding: 10px; border-radius: 10px; text-align: center; font-weight: bold; margin-bottom: 8px; border: 1px solid #fecaca; font-size: 0.85rem; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%;
+            background-color: var(--modal-overlay); backdrop-filter: blur(4px); align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; animation: fadeIn 0.2s ease-out; }
+        .modal-content {
+            background-color: var(--modal-bg); margin: auto; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 300px; overflow: hidden; position: absolute; border: 1px solid var(--card-border);
+        }
+        .modal-header { padding: 15px; background-color: var(--modal-header); border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; cursor: move; }
+        .modal-title { margin: 0; font-size: 1rem; font-weight: 800; color: var(--text-main); }
+        .modal-body { padding: 20px; text-align: center; color: var(--modal-text); font-size: 0.95rem; line-height: 1.5; }
+        .modal-footer { padding: 12px; display: flex; gap: 10px; justify-content: center; border-top: 1px solid var(--card-border); }
+        .btn-modal { padding: 8px 16px; border-radius: 10px; border: none; font-weight: 800; cursor: pointer; font-size: 0.9rem; flex: 1; }
+        .btn-cancel { background-color: var(--btn-cancel-bg); color: var(--btn-cancel-text); }
+        .btn-confirm { background-color: var(--btn-danger-bg); color: var(--btn-danger-text); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-overlay.show .modal-content { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-row">
+        <div class="main-title"><span class="title-icon">✈️</span> Duty</div>
+        <div class="header-controls">
+            <div class="offset-control">
+                <button class="auto-btn" id="zoneBtn">Auto</button>
+                <select id="h_offset" class="header-select"></select>
+            </div>
+            <button class="icon-btn" id="resetBtn">🔄</button>
+            <button class="icon-btn" id="themeBtn">☀️</button>
+        </div>
+    </div>
+
+    <div class="global-row">
+        <div class="input-card">
+            <span class="label-text">🛫 이륙 (UTC)</span>
+            <div class="dropdown-group">
+                <select id="g_takeOffH" class="main-select save-global"></select> <span class="unit">시</span>
+                <select id="g_takeOffM" class="main-select save-global"></select> <span class="unit">분</span>
+            </div>
+        </div>
+        <div class="input-card">
+            <span class="label-text">⏱️ 총 비행 시간</span>
+            <div class="dropdown-group">
+                <select id="g_flightH" class="main-select save-global"></select> <span class="unit">H</span>
+                <select id="g_flightM" class="main-select save-global"></select> <span class="unit">M</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-nav">
+        <button class="tab-btn" onclick="switchTab('3p')">3P</button>
+        <button class="tab-btn active" onclick="switchTab('4p1')">4P(1)</button>
+        <button class="tab-btn" onclick="switchTab('4p2')">4P(2)</button>
+        <button class="tab-btn" onclick="switchTab('5p')">5P</button>
+    </div>
+
+    <div class="summary-bar">
+        <span id="s_duty_rest" class="dr-val">-</span>
+    </div>
+
+    <div class="specific-inputs-container">
+        <div id="inputs-3p" class="spec-group">
+            <div class="spec-card">
+                <span class="spec-label">🔻 마지막 교대 시간 (Last Shift)</span>
+                <div class="dropdown-group">
+                    <select id="3p_lastH" class="main-select save-3p"></select> <span class="unit">H</span>
+                    <select id="3p_lastM" class="main-select save-3p"></select> <span class="unit">M</span>
+                </div>
+            </div>
+            <div id="3p_alert" class="alert-msg">⚠️ 마지막 교대 시간이 너무 깁니다</div>
+        </div>
+
+        <div id="inputs-4p1" class="spec-group active">
+            <div class="spec-card">
+                <span class="spec-label">🔻 마지막 교대 시간 (Last Shift)</span>
+                <div class="dropdown-group">
+                    <select id="4p1_lastH" class="main-select save-4p1"></select> <span class="unit">H</span>
+                    <select id="4p1_lastM" class="main-select save-4p1"></select> <span class="unit">M</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="inputs-4p2" class="spec-group">
+            <div class="split-row">
+                <div class="spec-card">
+                    <span class="spec-label">🔻 1ST 근무</span>
+                    <div class="dropdown-group">
+                        <select id="4p2_fH" class="main-select save-4p2"></select> <span class="unit">H</span>
+                        <select id="4p2_fM" class="main-select save-4p2"></select> <span class="unit">M</span>
+                    </div>
+                </div>
+                <div class="spec-card">
+                    <span class="spec-label">🔻 5TH 근무</span>
+                    <div class="dropdown-group">
+                        <select id="4p2_lH" class="main-select save-4p2"></select> <span class="unit">H</span>
+                        <select id="4p2_lM" class="main-select save-4p2"></select> <span class="unit">M</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="inputs-5p" class="spec-group">
+            <div class="spec-card">
+                <span class="spec-label">🔻 마지막 교대 시간 (Last Shift)</span>
+                <div class="dropdown-group">
+                    <select id="5p_lastH" class="main-select save-5p"></select> <span class="unit">H</span>
+                    <select id="5p_lastM" class="main-select save-5p"></select> <span class="unit">M</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="table-3p" class="table-container">
+        <table>
+            <thead><tr><th class="tl-col"></th><th width="25%">구분</th><th width="25%">PIC</th><th width="25%">C2</th><th width="25%">F</th></tr></thead>
+            <tbody id="tbody-3p"></tbody>
+        </table>
+    </div>
+    <div id="table-4p1" class="table-container active">
+        <table>
+            <thead><tr><th class="tl-col"></th><th width="34%">구분</th><th width="33%">PIC</th><th width="33%">C2</th></tr></thead>
+            <tbody id="tbody-4p1"></tbody>
+        </table>
+    </div>
+    <div id="table-4p2" class="table-container">
+        <table>
+            <thead><tr><th class="tl-col"></th><th width="34%">구분</th><th width="33%">PIC</th><th width="33%">C2</th></tr></thead>
+            <tbody id="tbody-4p2"></tbody>
+        </table>
+    </div>
+    <div id="table-5p" class="table-container">
+        <table>
+            <thead><tr><th class="tl-col"></th><th width="15%">구분</th><th width="17%">PIC</th><th width="17%">C2</th><th width="17%">C3</th><th width="17%">F1</th><th width="17%">F2</th></tr></thead>
+            <tbody id="tbody-5p"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="resetModal" class="modal-overlay">
+    <div class="modal-content" id="modalDrag">
+        <div class="modal-header" id="modalHeader">
+            <h3 class="modal-title">⚠️ 초기화 확인</h3>
+        </div>
+        <div class="modal-body">
+            저장된 모든 설정을 삭제하고<br>초기화 하시겠습니까?
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-cancel" id="closeModalBtn">취소</button>
+            <button class="btn-modal btn-confirm" id="confirmResetBtn">초기화</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const getVal = (id) => Number(document.getElementById(id).value);
+    const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val; };
+    
+    // Updated Populate Function
+    const populate = (id, max, min=0, step=1) => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '';
+        for(let i=min; i<=max; i+=step) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            if(id === 'h_offset') {
+                opt.text = (i>0?"+":"") + (i===0?"00":String(i).padStart(2,'0'));
+            } else {
+                opt.text = String(i).padStart(2,'0');
+            }
+            sel.appendChild(opt);
+        }
+    };
+    
+    const fmtTime = (m) => {
+        const r = Math.round(m);
+        const n = (r + 2880) % 1440; // Handle negative modulo
+        return String(Math.floor(n/60)).padStart(2,'0') + ":" + String(n%60).padStart(2,'0');
+    };
+    const fmtDur = (m) => {
+        const r = Math.round(m);
+        return Math.floor(r/60) + "+" + String(r%60).padStart(2,'0');
+    };
+    const updateDR = (duty, rest) => {
+        document.getElementById('s_duty_rest').innerText = `총 근무 ${fmtDur(duty)} / 총 휴식 ${fmtDur(rest)}`;
+    };
+    const getIcon = (type) => {
+        if (type === 'D') return '✈️';
+        if (type === 'R') return '';
+        return type;
+    };
+
+    function setZone() {
+        const now = new Date();
+        const offsetMin = now.getTimezoneOffset();
+        const offsetHour = -Math.round(offsetMin / 60);
+        if(offsetHour >= -12 && offsetHour <= 14) { setVal('h_offset', offsetHour); update(); }
+    }
+
+    function init() {
+        populate('g_takeOffH', 23); populate('g_takeOffM', 59);
+        populate('h_offset', 14, -12); 
+        populate('g_flightH', 17, 5); populate('g_flightM', 59);
+        populate('3p_lastH', 5); populate('3p_lastM', 59);
+        populate('4p1_lastH', 5); populate('4p1_lastM', 59);
+        populate('4p2_fH', 10); populate('4p2_fM', 59);
+        populate('4p2_lH', 10); populate('4p2_lM', 59);
+        populate('5p_lastH', 5); populate('5p_lastM', 59);
+
+        const saved = JSON.parse(localStorage.getItem('flightDutyFinalV65')); 
+        if(saved) {
+            if(saved.global) Object.keys(saved.global).forEach(id => setVal(id, saved.global[id]));
+            if(saved.tabData) Object.keys(saved.tabData).forEach(id => setVal(id, saved.tabData[id]));
+            if(saved.tab) switchTab(saved.tab);
+        } else {
+            // 🟢 초기화(Reset) 및 최초 실행 시 기본값 설정
+            document.getElementById('g_flightH').value = 12; 
+
+            // 1. 모든 탭의 '마지막 교대' -> 1시간 30분
+            const lastTabs = ['3p', '4p1', '5p'];
+            lastTabs.forEach(tab => {
+                if(document.getElementById(`${tab}_lastH`)) {
+                    document.getElementById(`${tab}_lastH`).value = 1;  // 1시간
+                    document.getElementById(`${tab}_lastM`).value = 30; // 30분
+                }
+            });
+
+            // 2. [4P2] 탭의 '1ST 근무' -> 2시간 00분
+            if(document.getElementById('4p2_fH')) { 
+                document.getElementById('4p2_fH').value = 2; // 2시간
+                document.getElementById('4p2_fM').value = 0; // 0분
+            }
+
+            // 3. [4P2] 탭의 '5TH 근무' -> 1시간 30분
+            if(document.getElementById('4p2_lH')) { 
+                document.getElementById('4p2_lH').value = 1;  // 1시간
+                document.getElementById('4p2_lM').value = 30; // 30분
+            }
+
+            switchTab('4p1');
+        }
+        
+        setZone(); 
+        update();
+        
+        document.getElementById('zoneBtn').onclick = () => { setZone(); alert('현지 시각 재설정 완료'); };
+        document.querySelectorAll('select').forEach(el => el.addEventListener('change', () => { update(); saveState(); }));
+        setInterval(drawTimelineMarker, 1000);
+    }
+
+    let currentTab = '4p1';
+    function switchTab(tabId) {
+        currentTab = tabId;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`button[onclick="switchTab('${tabId}')"]`).classList.add('active');
+        document.querySelectorAll('.spec-group').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.table-container').forEach(c => c.classList.remove('active'));
+        document.getElementById(`inputs-${tabId}`).classList.add('active');
+        document.getElementById(`table-${tabId}`).classList.add('active');
+        update();
+        saveState();
+    }
+
+    function update() {
+        const toH = getVal('g_takeOffH');
+        const toM = getVal('g_takeOffM');
+        const flH = getVal('g_flightH');
+        const flM = getVal('g_flightM');
+        const off = getVal('h_offset') * 60; 
+        
+        const startMin = toH * 60 + toM;
+        const flightMin = flH * 60 + flM;
+        const endMin = startMin + flightMin;
+        
+        if (currentTab === '3p') calc3P(startMin, flightMin, endMin, off);
+        else if (currentTab === '4p1') calc4P1(startMin, flightMin, endMin, off);
+        else if (currentTab === '4p2') calc4P2(startMin, flightMin, endMin, off);
+        else if (currentTab === '5p') calc5P(startMin, flightMin, endMin, off);
+        
+        drawTimelineMarker();
+    }
+
+    function calc3P(st, fl, en, off) {
+        const last = getVal('3p_lastH') * 60 + getVal('3p_lastM');
+        const targetRest = fl / 3;
+        updateDR(fl - Math.round(targetRest), Math.round(targetRest));
+        let d1 = targetRest - last;
+        const d2 = targetRest; const d3 = targetRest; const d4 = last;
+        const alertBox = document.getElementById('3p_alert');
+        d1 < 0 ? (d1 = 0, alertBox.style.display = 'block') : (alertBox.style.display = 'none');
+        const t1 = st + d1; const t2 = t1 + d2; const t3 = t2 + d3;
+        
+        const rows = [
+            { div:true, t:st, label:'TAKEOFF' },
+            { l:'1ST', p1:'D', p2:'R', f:'D', st:st, en:t1 },
+            { div:true, t:t1, label:'CHANGE' },
+            { l:'2ND', p1:'D', p2:'D', f:'R', st:t1, en:t2 },
+            { div:true, t:t2, label:'CHANGE' },
+            { l:'3RD', p1:'R', p2:'D', f:'D', st:t2, en:t3 },
+            { div:true, t:t3, label:'CHANGE' },
+            { l:'LAST', p1:'D', p2:'R', f:'D', st:t3, en:en },
+            { div:true, t:en, label:'LANDING' }
+        ];
+        renderTable('tbody-3p', rows, off, (r) => `
+            <td class="type-cell"><span class="type-label">${r.l}</span><span class="dur-badge">${fmtDur(r.en-r.st)}</span></td>
+            <td class="${r.p1==='D'?'status-duty':'status-rest'}">${getIcon(r.p1)}</td>
+            <td class="${r.p2==='D'?'status-duty':'status-rest'}">${getIcon(r.p2)}</td>
+            <td class="${r.f==='D'?'status-duty':'status-rest'}">${getIcon(r.f)}</td>
+        `);
+    }
+
+    function calc4P1(st, fl, en, off) {
+        const last = getVal('4p1_lastH') * 60 + getVal('4p1_lastM');
+        const restTotal = Math.round(fl / 2);
+        updateDR(fl - restTotal, restTotal);
+        const d1 = Math.round(restTotal - last);
+        const d2 = Math.round(fl - last - d1);
+        const t1 = st + d1; const t2 = t1 + d2;
+        
+        const rows = [
+            { div:true, t:st, label:'TAKEOFF' },
+            { l:'1ST', p1:'D', p2:'R', st:st, en:t1 },
+            { div:true, t:t1, label:'CHANGE' },
+            { l:'2ND', p1:'R', p2:'D', st:t1, en:t2 },
+            { div:true, t:t2, label:'CHANGE' },
+            { l:'3RD', p1:'D', p2:'R', st:t2, en:en },
+            { div:true, t:en, label:'LANDING' }
+        ];
+        renderTable('tbody-4p1', rows, off, (r) => `
+            <td class="type-cell"><span class="type-label">${r.l}</span><span class="dur-badge">${fmtDur(r.en-r.st)}</span></td>
+            <td class="${r.p1==='D'?'status-duty':'status-rest'}">${getIcon(r.p1)}</td>
+            <td class="${r.p2==='D'?'status-duty':'status-rest'}">${getIcon(r.p2)}</td>
+        `);
+    }
+
+    function calc4P2(st, fl, en, off) {
+        const fDur = getVal('4p2_fH')*60 + getVal('4p2_fM');
+        const lDur = getVal('4p2_lH')*60 + getVal('4p2_lM');
+        const half = Math.round(fl / 2);
+        updateDR(fl - half, half);
+        const s3 = half - (fDur + lDur);
+        const s2 = Math.round(half / 2);
+        const s4 = half - s2;
+        let cur = st;
+        const ordinals = ['1ST', '2ND', '3RD', '4TH', '5TH'];
+        const periods = [{p1:'D',p2:'R',d:fDur}, {p1:'R',p2:'D',d:s2}, {p1:'D',p2:'R',d:s3}, {p1:'R',p2:'D',d:s4}, {p1:'D',p2:'R',d:lDur}];
+        
+        const rows = [{ div:true, t:st, label:'TAKEOFF' }];
+        periods.forEach((p, idx) => {
+            rows.push({ l:ordinals[idx], p1:p.p1, p2:p.p2, st:cur, en:cur+p.d });
+            cur += p.d;
+            if(idx < 4) rows.push({ div:true, t:cur, label:'CHANGE' });
+        });
+        rows.push({ div:true, t:cur, label:'LANDING' });
+        renderTable('tbody-4p2', rows, off, (r) => `
+            <td class="type-cell"><span class="type-label">${r.l}</span><span class="dur-badge">${fmtDur(r.en-r.st)}</span></td>
+            <td class="${r.p1==='D'?'status-duty':'status-rest'}">${getIcon(r.p1)}</td>
+            <td class="${r.p2==='D'?'status-duty':'status-rest'}">${getIcon(r.p2)}</td>
+        `);
+    }
+
+    function calc5P(st, fl, en, off) {
+        const last = getVal('5p_lastH')*60 + getVal('5p_lastM');
+        const dutyTotal = Math.round(fl * 0.4);
+        updateDR(dutyTotal, fl - dutyTotal);
+        const midChunk = Math.round(fl / 5);
+        const targetSum15 = Math.round((midChunk * 3) * (2/3));
+        const first = targetSum15 - last;
+        const diff = fl - (first + midChunk * 3 + last);
+        const adjMid = midChunk + diff;
+        const durs = [first, midChunk, adjMid, midChunk, last];
+        const ordinals = ['1ST', '2ND', '3RD', '4TH', '5TH'];
+        const map = [[1,0,0,1,0],[0,1,0,0,1],[0,1,1,0,0],[0,0,1,0,1],[1,0,0,1,0]];
+        let cur = st;
+        
+        const rows = [{ div:true, t:st, label:'TAKEOFF' }];
+        durs.forEach((d, i) => {
+            rows.push({ l:ordinals[i], st:cur, en:cur+d, map: map[i] });
+            cur += d;
+            if(i < 4) rows.push({ div:true, t:cur, label:'CHANGE' });
+        });
+        rows.push({ div:true, t:cur, label:'LANDING' });
+        
+        renderTable('tbody-5p', rows, off, (r) => {
+            let html = `<td class="type-cell"><span class="type-label">${r.l}</span><span class="dur-badge">${fmtDur(r.en-r.st)}</span></td>`;
+            r.map.forEach(isD => { 
+                let type = isD ? 'D' : 'R';
+                let icon = getIcon(type);
+                html += `<td class="${isD?'status-duty':'status-rest'}">${icon}</td>`; 
+            });
+            return html;
+        });
+    }
+
+    function renderTable(tbodyId, rows, off, cellGenerator) {
+        const tbody = document.getElementById(tbodyId);
+        tbody.innerHTML = '';
+
+        // 🎚️ 비율 조절: 1분당 1.5픽셀
+        const PX_PER_MIN = 0.35; 
+        const MIN_HEIGHT = 65; 
+
+        rows.forEach(r => {
+            if(r.div) {
+                let lblClass = 'lbl-change';
+                if(r.label === 'TAKEOFF') lblClass = 'lbl-takeoff';
+                if(r.label === 'LANDING') lblClass = 'lbl-landing';
+                
+                tbody.innerHTML += `
+                <tr class="time-strip-row" data-end="${r.t}">
+                    <td class="tl-col"><div class="tl-dot"></div><div class="tl-rail"></div></td>
+                    <td colspan="100%">
+                        <div class="strip-container">
+                            <div class="strip-label-box ${lblClass}">${r.label}</div>
+                            <div class="strip-time-box">
+                                <div class="ts-item ts-u"><span class="ts-label">U</span> ${fmtTime(r.t)}</div>
+                                <div class="ts-item ts-k"><span class="ts-label">K</span> ${fmtTime(r.t+540)}</div>
+                                <div class="ts-item ts-l"><span class="ts-label">L</span> ${fmtTime(r.t+off)}</div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>`;
+            } else {
+                let duration = r.en - r.st;
+                let rowHeight = Math.max(MIN_HEIGHT, duration * PX_PER_MIN);
+
+                tbody.innerHTML += `
+                <tr class="data-row" data-start="${r.st}" data-end="${r.en}" style="height: ${rowHeight}px;">
+                    <td class="tl-col"><div class="tl-rail"></div></td>
+                    ${cellGenerator(r)}
+                </tr>`;
+            }
+        });
+    }
+
+    function drawTimelineMarker() {
+        const now = new Date();
+        const nowUTC = now.getUTCHours() * 60 + now.getUTCMinutes();
+        
+        document.querySelectorAll('.now-marker').forEach(el => el.remove());
+        document.querySelectorAll('.data-row').forEach(el => el.classList.remove('active-row'));
+
+        const rows = document.querySelectorAll('.data-row');
+        if(rows.length === 0) return;
+
+        const lastRow = rows[rows.length - 1];
+        const absLand = parseInt(lastRow.getAttribute('data-end'));
+
+        rows.forEach(row => {
+            const absStart = parseInt(row.getAttribute('data-start'));
+            const absEnd = parseInt(row.getAttribute('data-end'));
+            
+            const s_mod = absStart % 1440;
+            const e_mod = absEnd % 1440;
+            
+            let isActive = false;
+            let minToChange = 0;
+
+            if (s_mod < e_mod) {
+                if (nowUTC >= s_mod && nowUTC < e_mod) {
+                    isActive = true;
+                    minToChange = e_mod - nowUTC;
+                }
+            } else {
+                if (nowUTC >= s_mod || nowUTC < e_mod) {
+                    isActive = true;
+                    if (nowUTC >= s_mod) {
+                        minToChange = (e_mod + 1440) - nowUTC;
+                    } else {
+                        minToChange = e_mod - nowUTC;
+                    }
+                }
+            }
+
+            if (isActive) {
+                row.classList.add('active-row');
+                
+                const duration = absEnd - absStart;
+                const timePassed = duration - minToChange;
+                let percent = (timePassed / duration) * 100;
+                percent = Math.max(0, Math.min(100, percent));
+
+                const currentAbs = absEnd - minToChange;
+                const minToLand = absLand - currentAbs;
+
+                const fmtRem = (m) => {
+                    m = Math.max(0, m); 
+                    const h = Math.floor(m/60);
+                    const min = Math.floor(m%60);
+                    return `${h}+${String(min).padStart(2, '0')}`;
+                };
+
+                const tlCell = row.querySelector('.tl-col');
+                if(tlCell) {
+                    const marker = document.createElement('div');
+                    marker.className = 'now-marker';
+                    marker.style.top = percent + '%';
+                    marker.innerHTML = `
+                        <div class="now-badge">
+                            <div class="nb-row"><span class="nb-lbl">SH</span> <span>${fmtRem(minToChange)}</span></div>
+                            <div class="nb-row"><span class="nb-lbl">LD</span> <span>${fmtRem(minToLand)}</span></div>
+                        </div>
+                        <div class="now-dot"></div>
+                    `;
+                    tlCell.appendChild(marker);
+                }
+            }
+        });
+    }
+
+function saveState() {
+        const state = { tab: currentTab, global: {}, tabData: {} };
+        
+        // 1. 공통 데이터 저장 (이륙시간, 비행시간 등)
+        document.querySelectorAll('.save-global').forEach(el => state.global[el.id] = el.value);
+        document.querySelectorAll('.header-select').forEach(el => state.global[el.id] = el.value);
+        
+        // 2. [수정됨] 모든 탭의 데이터 저장 (보이는 탭뿐만 아니라 숨겨진 탭의 값도 모두 저장)
+        // 기존: document.querySelectorAll(`.save-${currentTab}`).forEach(...) 
+        // 변경: 모든 탭 클래스를 다 선택
+        const allTabInputs = document.querySelectorAll('.save-3p, .save-4p1, .save-4p2, .save-5p');
+        allTabInputs.forEach(el => state.tabData[el.id] = el.value);
+        
+        localStorage.setItem('flightDutyFinalV65', JSON.stringify(state));
+    }
+    // Modal & Drag Logic
+    const resetBtn = document.getElementById('resetBtn');
+    const modal = document.getElementById('resetModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const confirmResetBtn = document.getElementById('confirmResetBtn');
+    const modalContent = document.getElementById('modalDrag');
+    const modalHeader = document.getElementById('modalHeader');
+
+    resetBtn.onclick = () => {
+        modal.classList.add('show');
+        modalContent.style.left = (window.innerWidth - modalContent.offsetWidth) / 2 + "px";
+        modalContent.style.top = (window.innerHeight - modalContent.offsetHeight) / 2 + "px";
+    };
+    closeModalBtn.onclick = () => { modal.classList.remove('show'); };
+    confirmResetBtn.onclick = () => { localStorage.removeItem('flightDutyFinalV65'); location.reload(); };
+    modal.onclick = (e) => { if(e.target === modal) modal.classList.remove('show'); };
+
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+    modalHeader.onmousedown = (e) => {
+        isDragging = true;
+        startX = e.clientX; startY = e.clientY;
+        initialLeft = modalContent.offsetLeft; initialTop = modalContent.offsetTop;
+        document.onmousemove = dragModal; document.onmouseup = stopDrag;
+    };
+    function dragModal(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const dx = e.clientX - startX; const dy = e.clientY - startY;
+        modalContent.style.left = (initialLeft + dx) + "px";
+        modalContent.style.top = (initialTop + dy) + "px";
+    }
+    function stopDrag() { isDragging = false; document.onmousemove = null; document.onmouseup = null; }
+
+    document.getElementById('themeBtn').onclick = () => {
+        const d = document.documentElement;
+        if(d.getAttribute('data-theme') === 'dark') { d.removeAttribute('data-theme'); document.getElementById('themeBtn').innerText = '☀️'; localStorage.setItem('theme', 'light'); } 
+        else { d.setAttribute('data-theme', 'dark'); document.getElementById('themeBtn').innerText = '🌙'; localStorage.setItem('theme', 'dark'); }
+    };
+    if(localStorage.getItem('theme') === 'dark') { document.documentElement.setAttribute('data-theme', 'dark'); document.getElementById('themeBtn').innerText = '🌙'; }
+    window.onload = init;
+</script>
+
+</body>
+</html>
