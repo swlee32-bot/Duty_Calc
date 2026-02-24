@@ -1,4 +1,4 @@
-const CACHE_NAME = 'duty-calc-v1';
+const CACHE_NAME = 'duty-calc-v2';
 const urlsToCache = [
   './',
   './index.html',

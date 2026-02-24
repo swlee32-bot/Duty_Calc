@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -69,8 +69,9 @@
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
             padding: 10px; background-color: var(--page-bg); margin: 0; color: var(--text-main); 
-            transition: background-color 0.3s;
-        }
+            transition: background-color 0.3s;overscroll-behavior-y: none; 
+    -webkit-overflow-scrolling: touch;
+}
         
         .container { 
             max-width: 600px; margin: auto; background: var(--container-bg); padding: 16px; 
@@ -719,7 +720,43 @@ function saveState() {
         modalContent.style.top = (window.innerHeight - modalContent.offsetHeight) / 2 + "px";
     };
     closeModalBtn.onclick = () => { modal.classList.remove('show'); };
-    confirmResetBtn.onclick = () => { localStorage.removeItem('flightDutyFinalV65'); location.reload(); };
+    confirmResetBtn.onclick = () => { 
+    // 1. 저장소 데이터 삭제
+    localStorage.removeItem('flightDutyFinalV65'); 
+    
+    // 2. 화면의 모든 입력값을 '최초 실행 기본값'으로 강제 복구
+    document.getElementById('g_flightH').value = 12; 
+    document.getElementById('g_flightM').value = 0; 
+    document.getElementById('g_takeOffH').value = 0; 
+    document.getElementById('g_takeOffM').value = 0; 
+
+    // 모든 탭의 '마지막 교대' -> 1시간 30분
+    ['3p', '4p1', '5p'].forEach(tab => {
+        if(document.getElementById(`${tab}_lastH`)) {
+            document.getElementById(`${tab}_lastH`).value = 1;
+            document.getElementById(`${tab}_lastM`).value = 30;
+        }
+    });
+
+    // 4P2 탭 근무 시간 복구
+    if(document.getElementById('4p2_fH')) { 
+        document.getElementById('4p2_fH').value = 2;
+        document.getElementById('4p2_fM').value = 0;
+    }
+    if(document.getElementById('4p2_lH')) { 
+        document.getElementById('4p2_lH').value = 1;
+        document.getElementById('4p2_lM').value = 30;
+    }
+
+    // 3. 기본 탭(4P1)으로 이동 및 화면 업데이트
+    switchTab('4p1');
+    setZone();
+    update();
+
+    // 4. 모달 닫기
+    modal.classList.remove('show'); 
+    alert("새로고침 없이 설정이 성공적으로 초기화되었습니다.");
+};
     modal.onclick = (e) => { if(e.target === modal) modal.classList.remove('show'); };
 
     let isDragging = false;
