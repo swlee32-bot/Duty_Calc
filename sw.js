@@ -1,4 +1,4 @@
-const CACHE_NAME = 'duty_calc-v5';
+const CACHE_NAME = 'duty_calc-v6';
 const OFFLINE_URL = './index.html'; // 오프라인 시 보여줄 기본 페이지
 const urlsToCache = [
   './',
@@ -97,4 +97,5 @@ self.addEventListener('fetch', event => {
     })()
   );
 });
+
 
